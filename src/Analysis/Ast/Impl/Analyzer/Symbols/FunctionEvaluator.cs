@@ -26,6 +26,7 @@ using Microsoft.Python.Analysis.Values.Collections;
 using Microsoft.Python.Core;
 using Microsoft.Python.Parsing;
 using Microsoft.Python.Parsing.Ast;
+using DiagnosticSource = Microsoft.Python.Analysis.Diagnostics.DiagnosticSource;
 using ErrorCodes = Microsoft.Python.Analysis.Diagnostics.ErrorCodes;
 
 namespace Microsoft.Python.Analysis.Analyzer.Symbols {
