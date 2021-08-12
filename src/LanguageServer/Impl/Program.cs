@@ -26,10 +26,23 @@ using Microsoft.Python.LanguageServer.Services;
 using Newtonsoft.Json;
 using StreamJsonRpc;
 using StreamJsonRpc.Protocol;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Hosting;
 
 namespace Microsoft.Python.LanguageServer.Server {
     internal static class Program {
+        
+        
+        public static IHostBuilder CreateHostBuilder(string[] args) =>
+            Host.CreateDefaultBuilder(args)
+                .ConfigureWebHostDefaults(webBuilder =>
+                    { webBuilder.UseStartup<Startup>(); });
+        
         public static void Main(string[] args) {
+            
+            var host = CreateHostBuilder(args).Build();
+            host.Run();
+            
             CheckDebugMode();
 
             using (CoreShell.Create()) {
