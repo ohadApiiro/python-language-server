@@ -19,6 +19,23 @@ using Microsoft.Python.Core.Services;
 using StreamJsonRpc;
 
 namespace Microsoft.Python.LanguageServer.Services {
+    internal sealed class ClientApplicationRest : IClientApplication 
+    {
+        public Task NotifyAsync(string targetName, params object[] arguments) {
+            return Task.CompletedTask;
+        }
+
+        public Task NotifyWithParameterObjectAsync(string targetName, object argument = null) {
+            return Task.CompletedTask;
+        }
+
+        public Task<TResult> InvokeWithParameterObjectAsync<TResult>(string targetName, object argument = null,
+            CancellationToken cancellationToken = default) {
+            //return Task.FromResult<TResult>();
+            throw new System.NotImplementedException();
+        }
+    } 
+    
     internal sealed class ClientApplication : IClientApplication {
         private readonly JsonRpc _rpc;
 
