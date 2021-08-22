@@ -32,12 +32,34 @@ namespace Microsoft.Python.LanguageServer.Controllers
             return await _restLanguageServer.Initialize(initializeParams);
         }
 
-        [HttpPost("Initialized")]
+        [HttpPost("initialized")]
         public async Task Initialized(InitializedParams initializedParams, CancellationToken cancellationToken) 
         {
             await _restLanguageServer.Initialized(initializedParams);
         }
 
+        [HttpPost("hover")]
+        public async Task<Hover> Hover(TextDocumentPositionParams positionParams) 
+        {
+            return await _restLanguageServer.Hover(positionParams);
+        }
+
+        [HttpPost("didOpen")]
+        public async Task DidOpenTextDocument(DidOpenTextDocumentParams openParams) 
+        {
+            await _restLanguageServer.DidOpen(openParams);
+        }
+
+        [HttpPost("declaration")]
+        public async Task<Location> GotoDeclaration(TextDocumentPositionParams positionParams) {
+            return await _restLanguageServer.GotoDeclaration(positionParams);
+        }
+
+        public async Task<Reference[]> GotoDefinition(TextDocumentPositionParams positionParams) 
+        {
+            return await _restLanguageServer.GotoDefinition(positionParams);
+        }
+        
         [HttpPost("init")]
         public string Init(InitializeParams p) 
         {

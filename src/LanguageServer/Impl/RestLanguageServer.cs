@@ -68,13 +68,6 @@ namespace Microsoft.Python.LanguageServer.Implementation
             }
         }
         
-        private void RegisterServices(InitializeParams initParams) {
-            // we need to register cache service first.
-            // optimization service consumes the cache info.
-            CacheService.Register(_services, initParams?.initializationOptions?.cacheFolderPath);
-            _services.AddService(new ProfileOptimizationService(_services));
-        }
-        
         public async Task Initialized(InitializedParams initializedParams) 
         {
             _services.GetService<IProfileOptimizationService>()?.Profile("Initialized");
@@ -88,6 +81,38 @@ namespace Microsoft.Python.LanguageServer.Implementation
                 //await _rpc.NotifyAsync("python/languageServerStarted");
                 _initialized = true;
             }
+        }
+        
+        public async Task<Hover> Hover(TextDocumentPositionParams positionParams)
+        {
+            Debug.Assert(_initialized);
+            return await _server.Hover(positionParams, CancellationToken.None);
+        }
+        
+        public async Task DidOpen(DidOpenTextDocumentParams openParams) 
+        {
+            Debug.Assert(_initialized);
+            _server.DidOpenTextDocument(openParams);
+        }
+        
+        public async Task<Location> GotoDeclaration(TextDocumentPositionParams positionParams) 
+        {
+            Debug.Assert(_initialized);
+            return await _server.GotoDeclaration(positionParams, CancellationToken.None);
+        }
+
+        public async Task<Reference[]> GotoDefinition(TextDocumentPositionParams positionParams) 
+        {
+            Debug.Assert(_initialized);
+            return await _server.GotoDefinition(positionParams, CancellationToken.None);
+        }
+        
+        //--------------------------------------------------------------------------------------------------------------
+        private void RegisterServices(InitializeParams initParams) {
+            // we need to register cache service first.
+            // optimization service consumes the cache info.
+            CacheService.Register(_services, initParams?.initializationOptions?.cacheFolderPath);
+            _services.AddService(new ProfileOptimizationService(_services));
         }
         
         private T ToObject<T>(JToken token) => token.ToObject<T>(_jsonSerializer);
