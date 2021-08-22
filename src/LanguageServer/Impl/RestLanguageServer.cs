@@ -24,7 +24,6 @@ using Newtonsoft.Json.Linq;
 
 namespace Microsoft.Python.LanguageServer.Implementation
 {
-    
     public class RestLanguageServer
     {
         private IServiceManager _services;
@@ -41,7 +40,7 @@ namespace Microsoft.Python.LanguageServer.Implementation
         private readonly Prioritizer _prioritizer = new Prioritizer();
         private bool _initialized;
         private Task<IDisposable> _initializedPriorityTask;
-        
+
         public RestLanguageServer(IServiceManager services) 
         {
             _services = services;
@@ -60,8 +59,7 @@ namespace Microsoft.Python.LanguageServer.Implementation
             _initParams = initializeParams;
             RegisterServices(_initParams);
 
-            using (await _prioritizer.InitializePriorityAsync()) 
-            {
+            using (await _prioritizer.InitializePriorityAsync()) {
                 Debug.Assert(!_initialized);
                 // Force the next handled request to be "initialized", where the work actually happens.
                 _initializedPriorityTask = _prioritizer.InitializedPriorityAsync();
@@ -76,121 +74,120 @@ namespace Microsoft.Python.LanguageServer.Implementation
             CacheService.Register(_services, initParams?.initializationOptions?.cacheFolderPath);
             _services.AddService(new ProfileOptimizationService(_services));
         }
-
         
-        // public async Task Initialized(JToken token, CancellationToken cancellationToken) 
-        // {
-        //     _services.GetService<IProfileOptimizationService>()?.Profile("Initialized");
-        //
-        //     using (await _initializedPriorityTask) {
-        //         Debug.Assert(!_initialized);
-        //         var pythonSection = await GetPythonConfigurationAsync(cancellationToken, 200);
-        //         var userConfiguredPaths = GetUserConfiguredPaths(pythonSection);
-        //
-        //         await _server.InitializedAsync(ToObject<InitializedParams>(token), cancellationToken, userConfiguredPaths);
-        //         //await _rpc.NotifyAsync("python/languageServerStarted");
-        //         _initialized = true;
-        //     }
-        // }
-        //
-        // private T ToObject<T>(JToken token) => token.ToObject<T>(_jsonSerializer);
-        //
-        // private async Task<JToken> GetPythonConfigurationAsync(
-        //     CancellationToken cancellationToken = default,
-        //     int? cancelAfterMilli = null) 
-        // {
-        //     if (_initParams?.capabilities?.workspace?.configuration != true) {
-        //         return null;
-        //     }
-        //
-        //     try {
-        //         using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken)) {
-        //             if (cancelAfterMilli.HasValue) {
-        //                 cts.CancelAfter(cancelAfterMilli.Value);
-        //             }
-        //             var args = new ConfigurationParams {
-        //                 items = new[] {
-        //                     new ConfigurationItem {
-        //                         scopeUri = _initParams.rootUri,
-        //                         section = "python"
-        //                     }
-        //                 }
-        //             };
-        //             var configs = await _rpc.InvokeWithParameterObjectAsync<JToken>("workspace/configuration", args, cancellationToken);
-        //             return configs?[0];
-        //         }
-        //     } catch (Exception) { }
-        //
-        //     // The cancellation of this token could have been caught above instead of the timeout, so rethrow it.
-        //     cancellationToken.ThrowIfCancellationRequested();
-        //     return null;
-        // }
-        //
-        // private ImmutableArray<string> GetUserConfiguredPaths(JToken pythonSection) {
-        //     var paths = ImmutableArray<string>.Empty;
-        //     var set = false;
-        //
-        //     if (pythonSection != null) {
-        //         var autoComplete = pythonSection["autoComplete"];
-        //         var analysis = pythonSection["analysis"];
-        //
-        //         // The values of these may not be null even if the value is "unset", depending on
-        //         // what the client uses as a default. Use null as a default anyway until the
-        //         // extension uses a null default (and/or extraPaths is dropped entirely).
-        //         var autoCompleteExtraPaths = GetSetting<IReadOnlyList<string>>(autoComplete, "extraPaths", null);
-        //         var analysisSearchPaths = GetSetting<IReadOnlyList<string>>(analysis, "searchPaths", null);
-        //         var analysisUsePYTHONPATH = GetSetting(analysis, "usePYTHONPATH", true);
-        //         var analayisAutoSearchPaths = GetSetting(analysis, "autoSearchPaths", true);
-        //
-        //         if (analysisSearchPaths != null) {
-        //             set = true;
-        //             paths = analysisSearchPaths.ToImmutableArray();
-        //         } else if (autoCompleteExtraPaths != null) {
-        //             set = true;
-        //             paths = autoCompleteExtraPaths.ToImmutableArray();
-        //         }
-        //
-        //         if (analysisUsePYTHONPATH) {
-        //             var pythonpath = Environment.GetEnvironmentVariable("PYTHONPATH");
-        //             if (pythonpath != null) {
-        //                 var sep = _services.GetService<IOSPlatform>().IsWindows ? ';' : ':';
-        //                 var pythonpathPaths = pythonpath.Split(sep, StringSplitOptions.RemoveEmptyEntries);
-        //                 if (pythonpathPaths.Length > 0) {
-        //                     paths = paths.AddRange(pythonpathPaths);
-        //                     set = true;
-        //                 }
-        //             }
-        //         }
-        //
-        //         if (analayisAutoSearchPaths) {
-        //             var fs = _services.GetService<IFileSystem>();
-        //             var auto = AutoSearchPathFinder.Find(fs, _server.Root);
-        //             paths = paths.AddRange(auto);
-        //             set = true;
-        //         }
-        //     }
-        //
-        //     if (set) {
-        //         return paths;
-        //     }
-        //
-        //     var initPaths = _initParams?.initializationOptions?.searchPaths;
-        //     if (initPaths != null) {
-        //         return initPaths.ToImmutableArray();
-        //     }
-        //
-        //     return ImmutableArray<string>.Empty;
-        // }
-        //
-        // private T GetSetting<T>(JToken section, string settingName, T defaultValue) {
-        //     var value = section?[settingName];
-        //     try {
-        //         return value != null ? value.ToObject<T>() : defaultValue;
-        //     } catch (JsonException ex) {
-        //         _logger?.Log(TraceEventType.Warning, $"Exception retrieving setting '{settingName}': {ex.Message}");
-        //     }
-        //     return defaultValue;
-        // }
+        public async Task Initialized(InitializedParams initializedParams) 
+        {
+            _services.GetService<IProfileOptimizationService>()?.Profile("Initialized");
+        
+            using (await _initializedPriorityTask) {
+                Debug.Assert(!_initialized);
+                var pythonSection = await GetPythonConfigurationAsync(CancellationToken.None, 200);
+                var userConfiguredPaths = GetUserConfiguredPaths(pythonSection);
+        
+                await _server.InitializedAsync(initializedParams, CancellationToken.None, userConfiguredPaths);
+                //await _rpc.NotifyAsync("python/languageServerStarted");
+                _initialized = true;
+            }
+        }
+        
+        private T ToObject<T>(JToken token) => token.ToObject<T>(_jsonSerializer);
+ 
+        private async Task<JToken> GetPythonConfigurationAsync(
+            CancellationToken cancellationToken = default,
+            int? cancelAfterMilli = null) 
+        {
+            if (_initParams?.capabilities?.workspace?.configuration != true) {
+                return null;
+            }
+
+            try {
+                using (var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken)) {
+                    if (cancelAfterMilli.HasValue) {
+                        cts.CancelAfter(cancelAfterMilli.Value);
+                    }
+                    var args = new ConfigurationParams {
+                        items = new[] {
+                            new ConfigurationItem {
+                                scopeUri = _initParams.rootUri,
+                                section = "python"
+                            }
+                        }
+                    };
+                   // var configs = await _rpc.InvokeWithParameterObjectAsync<JToken>("workspace/configuration", args, cancellationToken);
+                   return null; //configs?[0];
+                }
+            } catch (Exception) { }
+
+            // The cancellation of this token could have been caught above instead of the timeout, so rethrow it.
+            cancellationToken.ThrowIfCancellationRequested();
+            return null;
+        }
+
+        private ImmutableArray<string> GetUserConfiguredPaths(JToken pythonSection) {
+            var paths = ImmutableArray<string>.Empty;
+            var set = false;
+
+            if (pythonSection != null) {
+                var autoComplete = pythonSection["autoComplete"];
+                var analysis = pythonSection["analysis"];
+
+                // The values of these may not be null even if the value is "unset", depending on
+                // what the client uses as a default. Use null as a default anyway until the
+                // extension uses a null default (and/or extraPaths is dropped entirely).
+                var autoCompleteExtraPaths = GetSetting<IReadOnlyList<string>>(autoComplete, "extraPaths", null);
+                var analysisSearchPaths = GetSetting<IReadOnlyList<string>>(analysis, "searchPaths", null);
+                var analysisUsePYTHONPATH = GetSetting(analysis, "usePYTHONPATH", true);
+                var analayisAutoSearchPaths = GetSetting(analysis, "autoSearchPaths", true);
+
+                if (analysisSearchPaths != null) {
+                    set = true;
+                    paths = analysisSearchPaths.ToImmutableArray();
+                } else if (autoCompleteExtraPaths != null) {
+                    set = true;
+                    paths = autoCompleteExtraPaths.ToImmutableArray();
+                }
+
+                if (analysisUsePYTHONPATH) {
+                    var pythonpath = Environment.GetEnvironmentVariable("PYTHONPATH");
+                    if (pythonpath != null) {
+                        var sep = _services.GetService<IOSPlatform>().IsWindows ? ';' : ':';
+                        var pythonpathPaths = pythonpath.Split(sep, StringSplitOptions.RemoveEmptyEntries);
+                        if (pythonpathPaths.Length > 0) {
+                            paths = paths.AddRange(pythonpathPaths);
+                            set = true;
+                        }
+                    }
+                }
+
+                if (analayisAutoSearchPaths) {
+                    var fs = _services.GetService<IFileSystem>();
+                    var auto = AutoSearchPathFinder.Find(fs, _server.Root);
+                    paths = paths.AddRange(auto);
+                    set = true;
+                }
+            }
+
+            if (set) {
+                return paths;
+            }
+
+            var initPaths = _initParams?.initializationOptions?.searchPaths;
+            if (initPaths != null) {
+                return initPaths.ToImmutableArray();
+            }
+
+            return ImmutableArray<string>.Empty;
+        }
+        
+        private T GetSetting<T>(JToken section, string settingName, T defaultValue) {
+            var value = section?[settingName];
+            try {
+                return value != null ? value.ToObject<T>() : defaultValue;
+            } catch (JsonException ex) {
+                _logger?.Log(TraceEventType.Warning, $"Exception retrieving setting '{settingName}': {ex.Message}");
+            }
+            return defaultValue;
+        }
 
         private class Prioritizer : IDisposable {
             private enum Priority {

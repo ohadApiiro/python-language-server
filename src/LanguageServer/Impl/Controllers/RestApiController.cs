@@ -18,9 +18,9 @@ namespace Microsoft.Python.LanguageServer.Controllers
     public class RestApiController : ControllerBase 
     {
         private static IServiceManager _services;
-        private readonly RestLanguageServer _restLanguageServer;
+        private static readonly RestLanguageServer _restLanguageServer;
 
-        public RestApiController()
+        static RestApiController()
         {
             _services = RestScope.Services; 
             _restLanguageServer = new RestLanguageServer(_services);
@@ -31,7 +31,12 @@ namespace Microsoft.Python.LanguageServer.Controllers
         {
             return await _restLanguageServer.Initialize(initializeParams);
         }
-      
+
+        [HttpPost("Initialized")]
+        public async Task Initialized(InitializedParams initializedParams, CancellationToken cancellationToken) 
+        {
+            await _restLanguageServer.Initialized(initializedParams);
+        }
 
         [HttpPost("init")]
         public string Init(InitializeParams p) 

@@ -33,7 +33,9 @@ namespace Microsoft.Python.LanguageServer.Server {
         public static void Main(string[] args) {
 
             RestScope.RunInScope(args);
-            
+
+
+#if false
             CheckDebugMode();
 
             using (CoreShell.Create()) {
@@ -74,6 +76,7 @@ namespace Microsoft.Python.LanguageServer.Server {
                     token.WaitHandle.WaitOne();
                 }
             }
+#endif
         }
 
         private static void CheckDebugMode() {
