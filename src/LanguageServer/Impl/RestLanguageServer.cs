@@ -9,7 +9,6 @@ using Microsoft.Python.Analysis.Caching;
 using Microsoft.Python.Core;
 using Microsoft.Python.Core.Collections;
 using Microsoft.Python.Core.Disposables;
-using Microsoft.Python.Core.Idle;
 using Microsoft.Python.Core.IO;
 using Microsoft.Python.Core.Logging;
 using Microsoft.Python.Core.OS;
@@ -18,7 +17,6 @@ using Microsoft.Python.Core.Threading;
 using Microsoft.Python.LanguageServer.Optimization;
 using Microsoft.Python.LanguageServer.Protocol;
 using Microsoft.Python.LanguageServer.SearchPaths;
-using Microsoft.Python.LanguageServer.Telemetry;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -28,16 +26,10 @@ namespace Microsoft.Python.LanguageServer.Implementation
     {
         private IServiceManager _services;
         private Server _server;
-        
         private ILogger _logger;
-        private ITelemetryService _telemetry;
-        private RequestTimer _requestTimer;
-        
-        private JsonSerializer _jsonSerializer;
-        private IIdleTimeTracker _idleTimeTracker;
-        private readonly AnalysisOptionsProvider _optionsProvider = new AnalysisOptionsProvider();
+
         private InitializeParams _initParams;
-        private readonly Prioritizer _prioritizer = new Prioritizer();
+        private readonly Prioritizer _prioritizer = new();
         private bool _initialized;
         private Task<IDisposable> _initializedPriorityTask;
 
@@ -45,15 +37,10 @@ namespace Microsoft.Python.LanguageServer.Implementation
         {
             _services = services;
             _server = new Server(services);
-            
-            _jsonSerializer = services.GetService<JsonSerializer>();
-            _idleTimeTracker = services.GetService<IIdleTimeTracker>();
             _logger = services.GetService<ILogger>();
-            _telemetry = services.GetService<ITelemetryService>();
-            _requestTimer = new RequestTimer(_telemetry);
         }
         
-        public async Task<ActionResult<InitializeResult>> Initialize(InitializeParams initializeParams) 
+        public async Task<ActionResult<InitializeResult>> Initialize(InitializeParams initializeParams)
         {
             //MonitorParentProcess(_initParams);
             _initParams = initializeParams;
@@ -78,12 +65,15 @@ namespace Microsoft.Python.LanguageServer.Implementation
                 var userConfiguredPaths = GetUserConfiguredPaths(pythonSection);
         
                 await _server.InitializedAsync(initializedParams, CancellationToken.None, userConfiguredPaths);
-                //await _rpc.NotifyAsync("python/languageServerStarted");
                 _initialized = true;
             }
         }
+
+        public async Task Shutdown() {
+            await _server.Shutdown();
+        }
         
-        public async Task<Hover> Hover(TextDocumentPositionParams positionParams)
+        public async Task<Hover> Hover(TextDocumentPositionParams positionParams) 
         {
             Debug.Assert(_initialized);
             return await _server.Hover(positionParams, CancellationToken.None);
@@ -93,6 +83,12 @@ namespace Microsoft.Python.LanguageServer.Implementation
         {
             Debug.Assert(_initialized);
             _server.DidOpenTextDocument(openParams);
+        }
+        
+        public Task DidClose(DidCloseTextDocumentParams closeParams) 
+        {
+            Debug.Assert(_initialized);
+            _server.DidCloseTextDocument(closeParams);
         }
         
         public async Task<Location> GotoDeclaration(TextDocumentPositionParams positionParams) 
@@ -107,6 +103,7 @@ namespace Microsoft.Python.LanguageServer.Implementation
             return await _server.GotoDefinition(positionParams, CancellationToken.None);
         }
         
+        
         //--------------------------------------------------------------------------------------------------------------
         private void RegisterServices(InitializeParams initParams) {
             // we need to register cache service first.
@@ -114,9 +111,7 @@ namespace Microsoft.Python.LanguageServer.Implementation
             CacheService.Register(_services, initParams?.initializationOptions?.cacheFolderPath);
             _services.AddService(new ProfileOptimizationService(_services));
         }
-        
-        private T ToObject<T>(JToken token) => token.ToObject<T>(_jsonSerializer);
- 
+
         private async Task<JToken> GetPythonConfigurationAsync(
             CancellationToken cancellationToken = default,
             int? cancelAfterMilli = null) 

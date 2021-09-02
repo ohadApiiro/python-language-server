@@ -27,13 +27,13 @@ using Newtonsoft.Json;
 using StreamJsonRpc;
 using StreamJsonRpc.Protocol;
 using Microsoft.Python.Core.Logging;
+using Microsoft.Python.LanguageServer.Controllers;
 
 namespace Microsoft.Python.LanguageServer.Server {
     internal static class Program {
         public static void Main(string[] args) {
-
+            
             RestScope.RunInScope(args);
-
 
 #if false
             CheckDebugMode();
