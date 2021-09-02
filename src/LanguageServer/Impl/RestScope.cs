@@ -1,8 +1,10 @@
+using System;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Python.Core.IO;
 using Microsoft.Python.Core.OS;
 using Microsoft.Python.Core.Services;
+using Microsoft.Python.LanguageServer.Controllers;
 using Microsoft.Python.LanguageServer.Services;
 using Newtonsoft.Json;
 using StreamJsonRpc;
@@ -15,8 +17,7 @@ namespace Microsoft.Python.LanguageServer.Server
 
         public static void RunInScope(string[] args) 
         {
-            using (CoreShell.Create()) 
-            {
+            using (CoreShell.Create()) {
                 Services = CoreShell.Current.ServiceManager;
                 var clientApp = new ClientApplicationRest();
 
@@ -39,15 +40,29 @@ namespace Microsoft.Python.LanguageServer.Server
                 messageFormatter.JsonSerializer.Converters.Add(new UriConverter());
                 Services.AddService(messageFormatter.JsonSerializer);
                 
-                var host = CreateHostBuilder(args).Build();
-                host.Run();
+                try {
+                    IHost host = CreateHostBuilder(args).Build();
+                    host.Run();
+                    
+                } catch (Exception e) {
+                    DumLogger.Log(e.Message);
+                    DumLogger.Log(e.StackTrace);
+                    Console.WriteLine(e);
+                    throw;
+                }
             }
         }
         
-        public static IHostBuilder CreateHostBuilder(string[] args) =>
-            Host.CreateDefaultBuilder(args).ConfigureWebHostDefaults(webBuilder => 
-                {
-                    webBuilder.UseStartup<Startup>();
-                });
+        public static IHostBuilder CreateHostBuilder(string[] args) {
+            var res = Host.CreateDefaultBuilder(args).ConfigureWebHostDefaults(webBuilder => {
+                webBuilder.UseStartup<Startup>();
+                if (args.Length > 0) {
+                    var url = $"http://localhost:{args[0]}";
+                    DumLogger.Log($"url is {url}");
+                    webBuilder.UseUrls(url);
+                }
+            });
+            return res;
+        }
     }
 }
