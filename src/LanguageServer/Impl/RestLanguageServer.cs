@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -14,16 +15,15 @@ using Microsoft.Python.Core.Logging;
 using Microsoft.Python.Core.OS;
 using Microsoft.Python.Core.Services;
 using Microsoft.Python.Core.Threading;
+using Microsoft.Python.LanguageServer.Controllers;
 using Microsoft.Python.LanguageServer.Optimization;
 using Microsoft.Python.LanguageServer.Protocol;
 using Microsoft.Python.LanguageServer.SearchPaths;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace Microsoft.Python.LanguageServer.Implementation
-{
-    public class RestLanguageServer
-    {
+namespace Microsoft.Python.LanguageServer.Implementation {
+    public class RestLanguageServer {
         private IServiceManager _services;
         private Server _server;
         private ILogger _logger;
@@ -32,18 +32,18 @@ namespace Microsoft.Python.LanguageServer.Implementation
         private readonly Prioritizer _prioritizer = new();
         private bool _initialized;
         private Task<IDisposable> _initializedPriorityTask;
+        private string[] _filters;
 
-        public RestLanguageServer(IServiceManager services) 
-        {
+        public RestLanguageServer(IServiceManager services) {
             _services = services;
             _server = new Server(services);
             _logger = services.GetService<ILogger>();
         }
-        
-        public async Task<ActionResult<InitializeResult>> Initialize(InitializeParams initializeParams)
-        {
+
+        public async Task<ActionResult<InitializeResult>> Initialize(InitializeWrapperParams initializeParams) {
             //MonitorParentProcess(_initParams);
-            _initParams = initializeParams;
+            _initParams = initializeParams.InitParams;
+            _filters = initializeParams.Filters;
             RegisterServices(_initParams);
 
             using (await _prioritizer.InitializePriorityAsync()) {
@@ -55,55 +55,90 @@ namespace Microsoft.Python.LanguageServer.Implementation
             }
         }
         
-        public async Task Initialized(InitializedParams initializedParams) 
-        {
+        public async Task Initialized(InitializedParams initializedParams) {
             _services.GetService<IProfileOptimizationService>()?.Profile("Initialized");
-        
+
             using (await _initializedPriorityTask) {
                 Debug.Assert(!_initialized);
                 var pythonSection = await GetPythonConfigurationAsync(CancellationToken.None, 200);
                 var userConfiguredPaths = GetUserConfiguredPaths(pythonSection);
-        
+
                 await _server.InitializedAsync(initializedParams, CancellationToken.None, userConfiguredPaths);
                 _initialized = true;
+                OpenAllFiles(_initParams.rootPath, _filters);
             }
         }
 
+        private void OpenAllFiles(string rootDir, string[] filters) 
+        {
+            foreach (var filter in filters) {
+                DumLogger.Log($"filter is: {filter}");
+            }
+
+            List<string> files = new List<string>();
+            ListAllFiles(rootDir, files, filters);
+
+            foreach (var file in files) {
+                DidOpenTextDocumentParams openParams = new DidOpenTextDocumentParams {
+                    textDocument = new TextDocumentItem {
+                        uri = new Uri(file),
+                        text = File.ReadAllText(file),
+                        version = 1
+                    }
+                };
+
+                _server.DidOpenTextDocument(openParams);
+            }
+        }
+        
+        private void ListAllFiles(string root, List<string> files, string[] filters) {
+            foreach (var filter in filters) {
+                if (root.StartsWith(filter)) {
+                    DumLogger.Log($"filtered {filter}");
+                    return;
+                }
+            }
+
+            foreach (var file in Directory.GetFiles(root, "*.py")) {
+                files.Add(file);
+            }
+
+            foreach (var directory in Directory.GetDirectories(root)) {
+                ListAllFiles(directory, files, filters);
+            }
+        }
+        
+        
         public async Task Shutdown() {
             await _server.Shutdown();
         }
-        
-        public async Task<Hover> Hover(TextDocumentPositionParams positionParams) 
-        {
+
+        public async Task<Hover> Hover(TextDocumentPositionParams positionParams) {
             Debug.Assert(_initialized);
             return await _server.Hover(positionParams, CancellationToken.None);
         }
-        
-        public async Task DidOpen(DidOpenTextDocumentParams openParams) 
-        {
+
+        public async Task DidOpen(DidOpenTextDocumentParams openParams) {
             Debug.Assert(_initialized);
             _server.DidOpenTextDocument(openParams);
         }
-        
-        public Task DidClose(DidCloseTextDocumentParams closeParams) 
-        {
+
+        public async Task DidClose(DidCloseTextDocumentParams closeParams) {
             Debug.Assert(_initialized);
             _server.DidCloseTextDocument(closeParams);
         }
-        
-        public async Task<Location> GotoDeclaration(TextDocumentPositionParams positionParams) 
-        {
+
+        public async Task<Location> GotoDeclaration(TextDocumentPositionParams positionParams) {
             Debug.Assert(_initialized);
             return await _server.GotoDeclaration(positionParams, CancellationToken.None);
         }
 
-        public async Task<Reference[]> GotoDefinition(TextDocumentPositionParams positionParams) 
-        {
+        public async Task<Reference[]> GotoDefinition(TextDocumentPositionParams positionParams) {
             Debug.Assert(_initialized);
             return await _server.GotoDefinition(positionParams, CancellationToken.None);
         }
-        
-        
+
+
         //--------------------------------------------------------------------------------------------------------------
         private void RegisterServices(InitializeParams initParams) {
             // we need to register cache service first.
@@ -114,8 +149,7 @@ namespace Microsoft.Python.LanguageServer.Implementation
 
         private async Task<JToken> GetPythonConfigurationAsync(
             CancellationToken cancellationToken = default,
-            int? cancelAfterMilli = null) 
-        {
+            int? cancelAfterMilli = null) {
             if (_initParams?.capabilities?.workspace?.configuration != true) {
                 return null;
             }
@@ -125,6 +159,7 @@ namespace Microsoft.Python.LanguageServer.Implementation
                     if (cancelAfterMilli.HasValue) {
                         cts.CancelAfter(cancelAfterMilli.Value);
                     }
+
                     var args = new ConfigurationParams {
                         items = new[] {
                             new ConfigurationItem {
@@ -133,8 +168,8 @@ namespace Microsoft.Python.LanguageServer.Implementation
                             }
                         }
                     };
-                   // var configs = await _rpc.InvokeWithParameterObjectAsync<JToken>("workspace/configuration", args, cancellationToken);
-                   return null; //configs?[0];
+                    // var configs = await _rpc.InvokeWithParameterObjectAsync<JToken>("workspace/configuration", args, cancellationToken);
+                    return null; //configs?[0];
                 }
             } catch (Exception) { }
 
@@ -198,7 +233,7 @@ namespace Microsoft.Python.LanguageServer.Implementation
 
             return ImmutableArray<string>.Empty;
         }
-        
+
         private T GetSetting<T>(JToken section, string settingName, T defaultValue) {
             var value = section?[settingName];
             try {
@@ -206,6 +241,7 @@ namespace Microsoft.Python.LanguageServer.Implementation
             } catch (JsonException ex) {
                 _logger?.Log(TraceEventType.Warning, $"Exception retrieving setting '{settingName}': {ex.Message}");
             }
+
             return defaultValue;
         }
 
@@ -258,7 +294,8 @@ namespace Microsoft.Python.LanguageServer.Implementation
             public Task DefaultPriorityAsync(CancellationToken cancellationToken = default)
                 => Enqueue(Priority.Default, isAwaitable: false, cancellationToken);
 
-            private Task<IDisposable> Enqueue(Priority priority, bool isAwaitable, CancellationToken cancellationToken) {
+            private Task<IDisposable> Enqueue(Priority priority, bool isAwaitable,
+                CancellationToken cancellationToken) {
                 var item = new QueueItem(isAwaitable, cancellationToken);
                 _ppc.Produce(item, (int)priority);
                 return item.Task;
@@ -292,9 +329,8 @@ namespace Microsoft.Python.LanguageServer.Implementation
 
             public void Dispose() => _ppc.Dispose();
         }
-        
-        private class AnalysisOptionsProvider : IAnalysisOptionsProvider 
-        {
+
+        private class AnalysisOptionsProvider : IAnalysisOptionsProvider {
             public AnalysisOptions Options { get; } = new AnalysisOptions();
         }
     }

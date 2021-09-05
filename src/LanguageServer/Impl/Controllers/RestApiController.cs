@@ -17,7 +17,7 @@ namespace Microsoft.Python.LanguageServer.Controllers
         public static void Log(string msg) {
             Console.WriteLine(msg);
             // if (Directory.Exists("/Lim.FeaturesExtractor.Unified"))
-            //     System.IO.File.AppendAllText("/Lim.FeaturesExtractor.Unified/dbg.txt", msg + Environment.NewLine);           
+            //     File.AppendAllText("/Lim.FeaturesExtractor.Unified/dbg.txt", msg + Environment.NewLine);           
         }
     }
     [ApiController]
@@ -32,9 +32,9 @@ namespace Microsoft.Python.LanguageServer.Controllers
         }
 
         [HttpPost("initialize")]
-        public async Task<ActionResult<InitializeResult>> Initialize(InitializeParams initializeParams)
+        public async Task<ActionResult<InitializeResult>> Initialize(InitializeWrapperParams initializeParams)
         {
-            return await _restLanguageServer.Initialize(initializeParams);
+            return await _restLanguageServer.Initialize(initializeParams); 
         }
 
         [HttpPost("initialized")]

@@ -31,6 +31,12 @@ namespace Microsoft.Python.LanguageServer.Protocol {
     }
 
     [Serializable]
+    public class InitializeWrapperParams {
+        public InitializeParams InitParams { get; set; }
+        public string [] Filters { get; set; }
+    }
+
+    [Serializable]
     public struct InitializeResult {
         public ServerCapabilities capabilities;
     }
