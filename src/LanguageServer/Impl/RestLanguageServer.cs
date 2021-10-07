@@ -71,10 +71,6 @@ namespace Microsoft.Python.LanguageServer.Implementation {
 
         private void OpenAllFiles(string rootDir, string[] filters) 
         {
-            foreach (var filter in filters) {
-                DumLogger.Log($"filter is: {filter}");
-            }
-
             List<string> files = new List<string>();
             ListAllFiles(rootDir, files, filters);
 
