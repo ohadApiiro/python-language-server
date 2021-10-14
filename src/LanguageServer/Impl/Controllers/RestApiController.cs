@@ -1,15 +1,11 @@
 using System;
 using System.IO;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using Microsoft.Python.LanguageServer.Implementation;
 using Microsoft.Python.LanguageServer.Protocol;
 using Microsoft.Python.LanguageServer.Server;
-using Newtonsoft.Json.Linq;
 
 namespace Microsoft.Python.LanguageServer.Controllers 
 {
@@ -20,17 +16,26 @@ namespace Microsoft.Python.LanguageServer.Controllers
             //     File.AppendAllText("/Lim.FeaturesExtractor.Unified/dbg.txt", msg + Environment.NewLine);           
         }
     }
+    
     [ApiController]
     [Route("api")]
     public class RestApiController : ControllerBase 
     {
         private static readonly RestLanguageServer _restLanguageServer;
+        private static readonly string SERVER_READY = "ready";
+        
 
         static RestApiController() {
             var services = RestScope.Services;
             _restLanguageServer = new RestLanguageServer(services);
         }
-
+        
+        [HttpGet("ready")]
+        public ActionResult<string> Ready() {
+            return SERVER_READY;
+        }
+        
+        
         [HttpPost("initialize")]
         public async Task<ActionResult<InitializeResult>> Initialize(InitializeWrapperParams initializeParams)
         {
