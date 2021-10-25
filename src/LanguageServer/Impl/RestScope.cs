@@ -58,7 +58,6 @@ namespace Microsoft.Python.LanguageServer.Server
                 webBuilder.UseStartup<Startup>();
                 if (args.Length > 0) {
                     var url = $"http://localhost:{args[0]}";
-                    DumLogger.Log($"url is {url}");
                     webBuilder.UseUrls(url);
                 }
             });

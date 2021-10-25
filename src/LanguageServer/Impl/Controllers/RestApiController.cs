@@ -9,8 +9,10 @@ using Microsoft.Python.LanguageServer.Server;
 
 namespace Microsoft.Python.LanguageServer.Controllers 
 {
-    public class DumLogger {
-        public static void Log(string msg) {
+    public class DumLogger 
+    {
+        public static void Log(string msg)
+        {
             Console.WriteLine(msg);
             // if (Directory.Exists("/Lim.FeaturesExtractor.Unified"))
             //     File.AppendAllText("/Lim.FeaturesExtractor.Unified/dbg.txt", msg + Environment.NewLine);           
@@ -49,14 +51,38 @@ namespace Microsoft.Python.LanguageServer.Controllers
         }
 
         [HttpPost("shutdown")]
-        public async Task Shutdown() {
+        public async Task Shutdown() 
+        {
             await _restLanguageServer.Shutdown();
+        }
+
+        [HttpPost("resolve")]
+        public async Task<string> Resolve(TextDocumentPositionParams positionParams) 
+        {
+            var hoverResult = await _restLanguageServer.Hover(positionParams);
+            if (hoverResult == null) 
+            {
+                return string.Empty;
+            }
+            
+            var className = hoverResult.contents?.value ?? string.Empty;
+            className = className.Split(Environment.NewLine)[0];
+
+            Reference[] references = await _restLanguageServer.GotoDefinition(positionParams);
+            if (references == null || references.Length == 0) 
+            {
+                return className;
+            }
+            var fileName = references[0]?.uri?.ToString();
+            fileName ??= string.Empty;
+            
+            return $"{fileName}|{className}";
         }
 
         [HttpPost("hover")]
         public async Task<Hover> Hover(TextDocumentPositionParams positionParams) 
         {
-            return await _restLanguageServer.Hover(positionParams);
+            return  await _restLanguageServer.Hover(positionParams);
         }
 
         [HttpPost("didOpen")]
