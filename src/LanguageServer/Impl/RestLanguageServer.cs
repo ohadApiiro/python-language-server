@@ -69,12 +69,13 @@ namespace Microsoft.Python.LanguageServer.Implementation {
             }
         }
 
+        private List<string> _repositoryFiles = new();
+
         private void OpenAllFiles(string rootDir, string[] filters) 
         {
-            List<string> files = new List<string>();
-            ListAllFiles(rootDir, files, filters);
+            ListAllFiles(rootDir, _repositoryFiles, filters);
 
-            foreach (var file in files) {
+            foreach (var file in _repositoryFiles) {
                 DidOpenTextDocumentParams openParams = new DidOpenTextDocumentParams {
                     textDocument = new TextDocumentItem {
                         uri = new Uri(file),
@@ -90,7 +91,6 @@ namespace Microsoft.Python.LanguageServer.Implementation {
         private void ListAllFiles(string root, List<string> files, string[] filters) {
             foreach (var filter in filters) {
                 if (root.StartsWith(filter)) {
-                    DumLogger.Log($"filtered {filter}");
                     return;
                 }
             }
@@ -103,10 +103,25 @@ namespace Microsoft.Python.LanguageServer.Implementation {
                 ListAllFiles(directory, files, filters);
             }
         }
-        
-        
+
         public async Task Shutdown() {
+            CloseAllFiles();
             await _server.Shutdown();
+        }
+
+        private void CloseAllFiles()
+        {
+            foreach (var file in _repositoryFiles)
+            {
+                var didCloseTextDocumentParams = new DidCloseTextDocumentParams
+                {
+                    textDocument = new TextDocumentIdentifier
+                    {
+                        uri = new Uri(file)
+                    }
+                };
+                _server.DidCloseTextDocument(didCloseTextDocumentParams);
+            }
         }
 
         public async Task<Hover> Hover(TextDocumentPositionParams positionParams) {
