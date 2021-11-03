@@ -14,6 +14,7 @@
 // permissions and limitations under the License.
 
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Microsoft.Python.Core.Text;
@@ -28,6 +29,19 @@ namespace Microsoft.Python.LanguageServer.Protocol {
         public PythonInitializationOptions initializationOptions;
         public ClientCapabilities capabilities;
         public TraceLevel trace;
+    }
+    
+    
+    [Serializable]
+    public class SourceFileMethodCalls
+    {
+        public string FilePath { get; set; }
+
+        public  Position [] Positions { get; set; }
+    }
+
+    public class BatchResolveResults {
+        public string[] ResolvedCalls;
     }
 
     [Serializable]
