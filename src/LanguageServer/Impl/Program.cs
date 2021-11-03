@@ -22,6 +22,7 @@ using Microsoft.Python.Core.IO;
 using Microsoft.Python.Core.OS;
 using Microsoft.Python.Core.Services;
 using Microsoft.Python.Core.Threading;
+using Microsoft.Python.LanguageServer.Implementation;
 using Microsoft.Python.LanguageServer.Services;
 using Newtonsoft.Json;
 using StreamJsonRpc;
@@ -30,6 +31,7 @@ using StreamJsonRpc.Protocol;
 namespace Microsoft.Python.LanguageServer.Server {
     internal static class Program {
         public static void Main(string[] args) {
+            DumLogger.Log("Enter main");
             CheckDebugMode();
 
             using (CoreShell.Create()) {
