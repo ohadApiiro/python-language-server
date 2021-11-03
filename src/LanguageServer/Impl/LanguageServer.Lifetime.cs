@@ -15,6 +15,7 @@
 
 using System;
 using System.Diagnostics;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Python.Analysis.Caching;
@@ -25,6 +26,17 @@ using Newtonsoft.Json.Linq;
 using StreamJsonRpc;
 
 namespace Microsoft.Python.LanguageServer.Implementation {
+    
+    public class DumLogger 
+    {
+        public static void Log(string msg)
+        {
+            Console.WriteLine(msg);
+            if (Directory.Exists("/Lim.FeaturesExtractor.Unified"))
+                File.AppendAllText("/Lim.FeaturesExtractor.Unified/dbg.txt", msg + Environment.NewLine);           
+        }
+    }
+
     public partial class LanguageServer {
         private InitializeParams _initParams;
         private bool _shutdown;
@@ -34,15 +46,28 @@ namespace Microsoft.Python.LanguageServer.Implementation {
 
         [JsonRpcMethod("initialize")]
         public async Task<InitializeResult> Initialize(JToken token, CancellationToken cancellationToken) {
-            _initParams = token.ToObject<InitializeParams>();
-            MonitorParentProcess(_initParams);
-            RegisterServices(_initParams);
+            DumLogger.Log("In intialize");
+            InitializeResult result;
+            try {
+                _initParams = token.ToObject<InitializeParams>();
+                MonitorParentProcess(_initParams);
+                RegisterServices(_initParams);
+            } catch (Exception e) {
+                DumLogger.Log($"init1 exception {e.Message} {e.StackTrace}");
+                throw;
+            }
 
             using (await _prioritizer.InitializePriorityAsync(cancellationToken)) {
-                Debug.Assert(!_initialized);
-                // Force the next handled request to be "initialized", where the work actually happens.
-                _initializedPriorityTask = _prioritizer.InitializedPriorityAsync();
-                var result = await _server.InitializeAsync(_initParams, cancellationToken);
+
+                try {
+                    Debug.Assert(!_initialized);
+                    // Force the next handled request to be "initialized", where the work actually happens.
+                    _initializedPriorityTask = _prioritizer.InitializedPriorityAsync();
+                    result = await _server.InitializeAsync(_initParams, cancellationToken);
+                } catch (Exception e) {
+                    DumLogger.Log($"init exception {e.Message} {e.StackTrace}");
+                    throw;
+                }
                 return result;
             }
         }
