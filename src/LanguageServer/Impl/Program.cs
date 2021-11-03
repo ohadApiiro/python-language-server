@@ -34,6 +34,7 @@ namespace Microsoft.Python.LanguageServer.Server {
             DumLogger.Log("Enter main");
             CheckDebugMode();
 
+            DumLogger.Log("main 1");
             using (CoreShell.Create()) {
                 var services = CoreShell.Current.ServiceManager;
 
@@ -42,15 +43,18 @@ namespace Microsoft.Python.LanguageServer.Server {
                 messageFormatter.JsonSerializer.NullValueHandling = NullValueHandling.Ignore;
                 messageFormatter.JsonSerializer.ConstructorHandling = ConstructorHandling.AllowNonPublicDefaultConstructor;
                 messageFormatter.JsonSerializer.Converters.Add(new UriConverter());
-
+    
+                DumLogger.Log("main 2");
                 using (var cin = Console.OpenStandardInput())
                 using (var cout = Console.OpenStandardOutput())
                 using (var server = new Implementation.LanguageServer())
                 using (var rpc = new LanguageServerJsonRpc(cout, cin, messageFormatter, server)) {
+                    DumLogger.Log("main 3");
                     rpc.TraceSource.Switch.Level = SourceLevels.Error;
                     rpc.SynchronizationContext = new SingleThreadSynchronizationContext();
                     var clientApp = new ClientApplication(rpc);
 
+                    DumLogger.Log("main 4");
                     var osp = new OSPlatform();
                     services
                         .AddService(clientApp)
@@ -65,8 +69,11 @@ namespace Microsoft.Python.LanguageServer.Server {
 
                     services.AddService(messageFormatter.JsonSerializer);
 
+                    DumLogger.Log("main 5");
                     var token = server.Start(services, rpc);
+                    DumLogger.Log("main 6");
                     rpc.StartListening();
+                    DumLogger.Log("main 7");
 
                     // Wait for the "exit" request, it will terminate the process.
                     token.WaitHandle.WaitOne();
